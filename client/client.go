@@ -15,7 +15,7 @@ type Cotacao struct {
 }
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Milliseconds)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/cotacao", nil)
 	if err != nil {

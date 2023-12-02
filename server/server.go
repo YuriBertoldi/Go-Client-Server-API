@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
@@ -66,43 +67,54 @@ func BuscaCotacaoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuscaCotacao() (*Cotacao, error) {
-	resp, error := http.Get("https://economia.awesomeapi.com.br/json/last/USD-BRL")
-	if error != nil {
-		return nil, error
-	}
-	defer resp.Body.Close()
-	body, error := ioutil.ReadAll(resp.Body)
-	if error != nil {
-		return nil, error
-	}
-	var c Cotacao
-	error = json.Unmarshal(body, &c)
-	if error != nil {
-		return nil, error
-	}
-	return &c, nil
-}
-
-func GravarCotacao(c *Cotacao) {
-	db, err := sql.Open("sqlite3", "./db/cotacoes.db")
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Milliseconds)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://economia.awesomeapi.com.br/json/last/USD-BRL", nil)
 	if err != nil {
 		panic(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	body, error := ioutil.ReadAll(res.Body)
+	if error != nil {
+		return nil, error
+
+		var c Cotacao
+		error = json.Unmarshal(body, &c)
+		if error != nil {
+			return nil, error
+		}
+		return &c, nil
+	}
+	return nil, nil
+}
+
+func GravarCotacao(c *Cotacao) error {
+	db, err := sql.Open("sqlite3", "db/cotacoes.db")
+	if err != nil {
+		return err
 	}
 	defer db.Close()
 	err = insertCotacao(db, c)
 	if err != nil {
-		panic(err)
+		return err
 	}
-
+	return nil
 }
 
 func insertCotacao(db *sql.DB, c *Cotacao) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Milliseconds)
+	defer cancel()
 	stmt, err := db.Prepare("insert into USDBRL(Code, Bid, Name) values(?, ?, ?)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(c.USDBRL.Code, c.USDBRL.Bid, c.USDBRL.Name)
+	_, err = stmt.ExecContext(ctx, c.USDBRL.Code, c.USDBRL.Bid, c.USDBRL.Name)
 	if err != nil {
 		return err
 	}
