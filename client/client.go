@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,26 +14,26 @@ type Cotacao struct {
 }
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/cotacao", nil)
 	if err != nil {
-		panic(err)
+		log.println(err.Error())
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		panic(err)
+		log.println(err.Error())
 	}
 	defer res.Body.Close()
 
-	body, error := ioutil.ReadAll(res.Body)
-	if error != nil {
-		panic(error)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.println(err)
 	}
 	var c Cotacao
-	error = json.Unmarshal(body, &c)
-	if error != nil {
-		panic(error)
+	err = json.Unmarshal(body, &c)
+	if err != nil {
+		log.println(err)
 	}
 
 	gravarArquivo(c.Bid)
@@ -43,14 +42,14 @@ func main() {
 func gravarArquivo(dolar string) {
 	f, err := os.Create("cotacao.txt")
 	if err != nil {
-		panic(err)
+		log.println(err.Error())
 	}
 	defer f.Close()
 
 	tamanho, err := f.WriteString("Dólar: " + dolar)
 	if err != nil {
-		panic(err)
+		log.println(err.Error())
 	}
-	fmt.Printf("Arquivo criado com sucesso! Tamanho: %d bytes\n", tamanho)
+	log.println("Arquivo criado com sucesso! Tamanho: %d bytes\n", tamanho)
 
 }

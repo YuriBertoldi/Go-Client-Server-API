@@ -42,21 +42,19 @@ func BuscaCotacaoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-
-	select {
-	case <-time.After(5 * time.Second):
-		println("teste")
-	case <-ctx.Done():
-		http.Error(w, "Request cancelada pelo cliente", http.StatusRequestTimeout)
-	}
-
 	xCotacao, error := BuscaCotacao()
 	if error != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.println(error.Error())
 		return
 	}
-	GravarCotacao(xCotacao)
+
+	err := GravarCotacao(xCotacao)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.println(err.Error())
+		return
+	}
 
 	xCotacaoSimp := new(CotacaoSimplificada)
 	xCotacaoSimp.Bid = xCotacao.USDBRL.Bid
@@ -67,15 +65,15 @@ func BuscaCotacaoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuscaCotacao() (*Cotacao, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://economia.awesomeapi.com.br/json/last/USD-BRL", nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer res.Body.Close()
 
@@ -107,7 +105,7 @@ func GravarCotacao(c *Cotacao) error {
 }
 
 func insertCotacao(db *sql.DB, c *Cotacao) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 	stmt, err := db.Prepare("insert into USDBRL(Code, Bid, Name) values(?, ?, ?)")
 	if err != nil {
