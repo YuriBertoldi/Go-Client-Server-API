@@ -67,7 +67,7 @@ func BuscaCotacaoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuscaCotacao() (*Cotacao, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Milliseconds)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Microsecond)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://economia.awesomeapi.com.br/json/last/USD-BRL", nil)
 	if err != nil {
@@ -107,7 +107,7 @@ func GravarCotacao(c *Cotacao) error {
 }
 
 func insertCotacao(db *sql.DB, c *Cotacao) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Milliseconds)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
 	defer cancel()
 	stmt, err := db.Prepare("insert into USDBRL(Code, Bid, Name) values(?, ?, ?)")
 	if err != nil {
