@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
@@ -31,7 +32,12 @@ type CotacaoSimplificada struct {
 	Bid string `json:"bid"`
 }
 
+type ErroJson struct {
+	Mensagem string `json:"mensagem"`
+}
+
 func main() {
+	log.Println("Servidor iniciado")
 	http.HandleFunc("/cotacao", BuscaCotacaoHandler)
 	http.ListenAndServe(":8080", nil)
 }
@@ -45,14 +51,22 @@ func BuscaCotacaoHandler(w http.ResponseWriter, r *http.Request) {
 	xCotacao, error := BuscaCotacao()
 	if error != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.println(error.Error())
+		xErr := new(ErroJson)
+		xErr.Mensagem = error.Error()
+		json.NewEncoder(w).Encode(xErr)
+
+		log.Println(error.Error())
 		return
 	}
 
 	err := GravarCotacao(xCotacao)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.println(err.Error())
+		xErr := new(ErroJson)
+		xErr.Mensagem = error.Error()
+		json.NewEncoder(w).Encode(xErr)
+
+		log.Println(err.Error())
 		return
 	}
 
@@ -71,6 +85,7 @@ func BuscaCotacao() (*Cotacao, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -80,15 +95,14 @@ func BuscaCotacao() (*Cotacao, error) {
 	body, error := ioutil.ReadAll(res.Body)
 	if error != nil {
 		return nil, error
-
-		var c Cotacao
-		error = json.Unmarshal(body, &c)
-		if error != nil {
-			return nil, error
-		}
-		return &c, nil
 	}
-	return nil, nil
+
+	var c Cotacao
+	error = json.Unmarshal(body, &c)
+	if error != nil {
+		return nil, error
+	}
+	return &c, nil
 }
 
 func GravarCotacao(c *Cotacao) error {
