@@ -121,7 +121,7 @@ func GravarCotacao(c *Cotacao) error {
 func insertCotacao(db *sql.DB, c *Cotacao) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
-	stmt, err := db.Prepare("insert into USDBRL(Code, Bid, Name) values(?, ?, ?)")
+	stmt, err := db.PrepareContext(ctx, "insert into USDBRL(Code, Bid, Name) values(?, ?, ?)")
 	if err != nil {
 		return err
 	}
